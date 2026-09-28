@@ -1252,7 +1252,12 @@
     .then(function (txt) {
       var q = acharQs(txt).replace(/^\?/, '');
       if (!q) { falhar('Este link não foi encontrado ou expirou. Peça um novo envio da proposta.'); return; }
-      window.location.replace(window.location.pathname + '?' + q);
+      // Os dados ficam só na memória da página: o endereço continua ?k=… e
+      // nada da proposta aparece na barra do navegador nem no histórico.
+      window.__QS = q;
+      window.__K = k;
+      if (capa.parentNode) capa.parentNode.removeChild(capa);
+      window.__paginaPrincipal();
     })
     .catch(function () {
       falhar('Não foi possível abrir a proposta agora. Verifique a internet e toque no link de novo.');
@@ -1260,7 +1265,7 @@
 })();
 </script>
 <script>
-(function () {
+window.__paginaPrincipal = function () {
   var els = {
     pill: document.getElementById('statusPill'),
     barPending: document.getElementById('barPending'),
@@ -1297,7 +1302,7 @@
   //   itens (JSON: [{nome,sigla,qtd}, ...] — aceita também texto simples),
   //   valido_ate (ISO 8601), token
   // =====================================================================
-  var qs = new URLSearchParams(window.location.search);
+  var qs = new URLSearchParams(window.__QS !== undefined ? window.__QS : window.location.search);
   var MODO_REAL = qs.toString() !== '';
 
   function qp(name) {
@@ -2041,7 +2046,10 @@
       demonstracao: com.demonstracao || '',
       apoio: com.apoio || '',
       // query string desta pagina, para o fluxo remontar o link do proximo nivel
-      qs: window.location.search.replace(/^\?/, ''),
+      // Com link curto o fluxo usa os dados guardados pelo código (k) e
+      // ignora este qs — ninguém consegue alterar valores editando o link.
+      k: window.__K || '',
+      qs: (window.__QS !== undefined ? window.__QS : window.location.search).replace(/^\?/, ''),
       decisao: decisao,
       motivo: motivo || '',
       cliente: CLIENTE || '',
@@ -2559,7 +2567,8 @@
   } else {
     start((window.claude && window.claude.hot && window.claude.hot.data) || {});
   }
-})();
+};
+if (!window.__LINK_CURTO) window.__paginaPrincipal();
 </script>
 </body>
 </html>
